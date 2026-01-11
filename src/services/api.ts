@@ -1,6 +1,8 @@
 import { auth } from '../config/firebase';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Remove trailing slash from base URL if present
+const rawApiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
 
 // Get the current user's ID token for authentication
 const getAuthToken = async (): Promise<string | null> => {
