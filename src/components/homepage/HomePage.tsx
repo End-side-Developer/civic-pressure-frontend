@@ -310,7 +310,7 @@ const HomePage: React.FC = () => {
 
       {/* Complaints Grid */}
       <div className="container mx-auto px-3 xs:px-4 md:px-6 pb-6 md:pb-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 xs:gap-4 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
           {visibleComplaints.map((complaint) => {
             const status = getStatusColor(complaint.status);
             // Check if current user has voted for this complaint using votedBy array
@@ -319,47 +319,49 @@ const HomePage: React.FC = () => {
             return (
               <div
                 key={complaint.id}
-                className="bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl shadow-sm hover:shadow-lg active:scale-[0.98] transition-all duration-200 overflow-hidden border border-gray-100 dark:border-gray-700 cursor-pointer"
+                className="group bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden border border-gray-100 dark:border-gray-700 cursor-pointer flex flex-col h-full"
                 onClick={() => navigate(`/complaint/${complaint.id}`)}
               >
-                {/* Card Header */}
-                <div className="p-3 xs:p-4 md:p-5 pb-2 xs:pb-3">
-                  <div className="flex items-start justify-between mb-2 xs:mb-3">
+                {/* Card Content */}
+                <div className="p-4 md:p-5 flex-1 flex flex-col">
+                  {/* Category Badge */}
+                  <div className="mb-3">
                     <span
-                      className={`${getSectorColor(complaint.category).bg} ${getSectorColor(complaint.category).text} text-[10px] xs:text-xs px-2 xs:px-3 py-1 xs:py-1.5 rounded-md xs:rounded-lg font-medium uppercase tracking-wide truncate max-w-[150px] xs:max-w-none`}
+                      className={`${getSectorColor(complaint.category).bg} ${getSectorColor(complaint.category).text} inline-block text-[10px] xs:text-xs px-2.5 py-1 rounded-md font-semibold uppercase tracking-wider`}
                     >
                       {complaint.category}
                     </span>
                   </div>
 
                   {/* Title */}
-                  <h3 className="font-bold text-gray-900 dark:text-white mb-2 line-clamp-2 text-sm xs:text-base leading-tight">
+                  <h3 className="font-bold text-gray-900 dark:text-white text-base leading-snug mb-2 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                     {complaint.title}
                   </h3>
 
                   {/* Description */}
-                  <p className="text-xs xs:text-sm text-gray-600 dark:text-gray-400 mb-3 xs:mb-4 leading-relaxed line-clamp-2">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-2 flex-1">
                     {complaint.description}
                   </p>
                 </div>
 
-                <div className="px-3 xs:px-4 md:px-5 py-2.5 xs:py-3 md:py-3.5 bg-gray-50 dark:bg-gray-900/50 flex items-center justify-between gap-2">
+                {/* Card Footer */}
+                <div className="px-4 md:px-5 py-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between gap-3 bg-gray-50/50 dark:bg-gray-900/30">
                   <button
                     onClick={(e) => handleVote(complaint.id, e)}
-                    className={`flex items-center gap-1.5 xs:gap-2 px-2.5 xs:px-3.5 py-1.5 xs:py-2 rounded-lg text-xs xs:text-sm font-semibold transition-all active:scale-95 ${isVoted
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all active:scale-95 ${isVoted
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'
                       }`}
                   >
-                    <ThumbsUp className={`w-3.5 h-3.5 xs:w-4 xs:h-4 ${isVoted ? 'fill-current' : ''}`} />
+                    <ThumbsUp className={`w-4 h-4 ${isVoted ? 'fill-current' : ''}`} />
                     <span>{formatVotes(complaint.votes)}</span>
                   </button>
 
                   <span
-                    className={`${status.bg} ${status.text} text-[10px] xs:text-xs px-2 xs:px-3 py-1 xs:py-1.5 rounded-md xs:rounded-lg font-semibold flex items-center gap-1 xs:gap-1.5 flex-shrink-0`}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${status.bg} ${status.text}`}
                   >
-                    <span className={`w-1.5 h-1.5 xs:w-2 xs:h-2 rounded-full ${complaint.status === 'solved' ? 'bg-green-600' :
-                        complaint.status === 'in-progress' ? 'bg-yellow-600' : 'bg-orange-600'
+                    <span className={`w-1.5 h-1.5 rounded-full ${complaint.status === 'solved' ? 'bg-green-500' :
+                        complaint.status === 'in-progress' ? 'bg-yellow-500' : 'bg-orange-500'
                       }`}></span>
                     {status.label}
                   </span>
