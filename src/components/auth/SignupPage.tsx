@@ -147,7 +147,9 @@ const SignupPage: React.FC = () => {
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-4">
-
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center p-1.5 flex-shrink-0">
+              <img src={logo} alt="Civic Pressure Logo" className="w-full h-full object-contain" />
+            </div>
             <span className="text-xl font-bold text-gray-900 dark:text-white">Civic Pressure</span>
           </div>
 
