@@ -20,10 +20,22 @@ import {
   ThumbsUp,
   Trash2,
   Image as ImageIcon,
+  FileText,
 } from 'lucide-react';
 import { useComplaints, Complaint } from '../../context/ComplaintsContext';
 import { useAuth } from '../../context/AuthContext';
 import { usersAPI } from '../../services/api';
+
+// Helper function to check if URL is a valid displayable image
+const isDisplayableImage = (url: string): boolean => {
+  if (!url) return false;
+  const lowerUrl = url.toLowerCase();
+  // Check if it's a PDF or other non-image file
+  if (lowerUrl.includes('.pdf') || lowerUrl.includes('application/pdf')) return false;
+  // Check for common image extensions
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp'];
+  return imageExtensions.some(ext => lowerUrl.includes(ext)) || lowerUrl.includes('image/');
+};
 
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -526,12 +538,21 @@ const ProfilePage: React.FC = () => {
                           >
                             <div className="flex gap-4">
                               {/* Image */}
-                              {complaint.images && complaint.images.length > 0 && complaint.images[0] ? (
+                              {complaint.images && complaint.images.length > 0 && complaint.images[0] && isDisplayableImage(complaint.images[0]) ? (
                                 <img
                                   src={complaint.images[0]}
                                   alt={complaint.title}
                                   className="w-32 h-24 object-cover rounded-lg flex-shrink-0"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    target.parentElement?.classList.add('image-error');
+                                  }}
                                 />
+                              ) : complaint.images && complaint.images.length > 0 && complaint.images[0] ? (
+                                <div className="w-32 h-24 bg-gray-100 dark:bg-gray-700 rounded-lg flex-shrink-0 flex items-center justify-center">
+                                  <FileText className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+                                </div>
                               ) : (
                                 <div className="w-32 h-24 bg-gray-100 dark:bg-gray-700 rounded-lg flex-shrink-0 flex items-center justify-center">
                                   <ImageIcon className="w-8 h-8 text-gray-400 dark:text-gray-500" />
@@ -680,12 +701,21 @@ const ProfilePage: React.FC = () => {
                             >
                               <div className="flex flex-col xs:flex-row gap-3 xs:gap-4">
                                 {/* Image */}
-                                {complaint.images && complaint.images.length > 0 && complaint.images[0] ? (
+                                {complaint.images && complaint.images.length > 0 && complaint.images[0] && isDisplayableImage(complaint.images[0]) ? (
                                   <img
                                     src={complaint.images[0]}
                                     alt={complaint.title}
                                     className="w-full xs:w-24 h-32 xs:h-20 object-cover rounded-lg flex-shrink-0"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                      target.parentElement?.classList.add('image-error');
+                                    }}
                                   />
+                                ) : complaint.images && complaint.images.length > 0 && complaint.images[0] ? (
+                                  <div className="w-full xs:w-24 h-32 xs:h-20 bg-gray-100 dark:bg-gray-700 rounded-lg flex-shrink-0 flex items-center justify-center">
+                                    <FileText className="w-8 h-8 xs:w-6 xs:h-6 text-gray-400 dark:text-gray-500" />
+                                  </div>
                                 ) : (
                                   <div className="w-full xs:w-24 h-32 xs:h-20 bg-gray-100 dark:bg-gray-700 rounded-lg flex-shrink-0 flex items-center justify-center">
                                     <ImageIcon className="w-8 h-8 xs:w-6 xs:h-6 text-gray-400 dark:text-gray-500" />
