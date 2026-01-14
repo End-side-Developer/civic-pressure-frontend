@@ -8,7 +8,7 @@ import DuplicateCheckPanel, { DuplicateCheckResult } from './DuplicateCheckPanel
 import { complaintsAPI, aiAPI } from '../../services/api';
 import { Autocomplete, useJsApiLoader } from '@react-google-maps/api';
 
-const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ['places'];
 
 declare global {

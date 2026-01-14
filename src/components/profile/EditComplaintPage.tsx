@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { complaintsAPI } from '../../services/api';
 import GoogleMapPicker from '../complaintPage/GoogleMapPicker';
 
-const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ['places'];
 
 const EditComplaintPage: React.FC = () => {

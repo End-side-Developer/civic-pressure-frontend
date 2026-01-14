@@ -3,7 +3,7 @@ import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
 import { MapPin } from 'lucide-react';
 
 // Google Maps API Key
-const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 // Libraries to load
 const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ['places'];

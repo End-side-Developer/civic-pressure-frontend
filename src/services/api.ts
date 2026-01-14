@@ -1,7 +1,7 @@
 import { auth } from '../config/firebase';
 
 // Remove trailing slash from base URL if present
-const rawApiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const API_BASE_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
 
 // Get the current user's ID token for authentication
@@ -178,7 +178,7 @@ export const complaintsAPI = {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/complaints/${id}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/complaints/${id}`, {
       method: 'PUT',
       headers,
       body: formData,

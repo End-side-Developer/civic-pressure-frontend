@@ -2,8 +2,8 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { GoogleMap, useJsApiLoader, Marker, Circle, Autocomplete } from '@react-google-maps/api';
 import { MapPin, Navigation, Search, AlertCircle, X, Info } from 'lucide-react';
 
-// Google Maps API Key - Replace with your actual API key
-const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
+// Google Maps API Key
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 // Libraries to load
 const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ['places'];
