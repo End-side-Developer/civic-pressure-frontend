@@ -118,7 +118,7 @@ const ComplaintFormPage: React.FC = () => {
     }
   }, [formData.description, improvedDescription, showAiComparison]);
 
-  // Handle AI description improvement
+  // Handle AI description improvement with retry logic
   const handleImproveDescription = async () => {
     if (formData.description.trim().length < 10) {
       setAiError('Please enter at least 10 characters before improving.');
@@ -130,26 +130,78 @@ const ComplaintFormPage: React.FC = () => {
     setImprovedDescription(null);
     setOriginalDescription(formData.description);
 
-    try {
-      const category = formData.sector === 'OTHER' ? formData.customSector : formData.sector;
-      const response = await aiAPI.improveDescription({
-        description: formData.description,
-        title: formData.title,
-        sector: category,
-      });
+    const maxRetries = 3;
+    let lastError: any = null;
 
-      if (response.success && response.improvedDescription) {
-        setImprovedDescription(response.improvedDescription);
-        setShowAiComparison(true);
-      } else {
-        setAiError(response.error || 'Failed to improve description. Please try again.');
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const category = formData.sector === 'OTHER' ? formData.customSector : formData.sector;
+        const response = await aiAPI.improveDescription({
+          description: formData.description,
+          title: formData.title,
+          sector: category,
+        });
+
+        if (response.success && response.improvedDescription) {
+          setImprovedDescription(response.improvedDescription);
+          setShowAiComparison(true);
+          setIsImprovingDescription(false);
+          return; // Success, exit the function
+        } else {
+          lastError = response.error || 'Failed to improve description.';
+          // Check if it's a model overload error (503)
+          if (response.error?.includes('503') || response.error?.includes('overloaded') || response.error?.includes('UNAVAILABLE')) {
+            if (attempt < maxRetries) {
+              // Exponential backoff: 1s, 2s, 4s
+              const delay = Math.pow(2, attempt - 1) * 1000;
+              await new Promise(resolve => setTimeout(resolve, delay));
+              continue;
+            }
+          } else {
+            // Non-retryable error
+            break;
+          }
+        }
+      } catch (error: any) {
+        console.error(`Error improving description (attempt ${attempt}/${maxRetries}):`, error);
+        lastError = error.message || 'Failed to improve description.';
+        
+        // Check if it's a model overload error (503)
+        const errorString = JSON.stringify(error).toLowerCase();
+        const isOverloadError = 
+          error.message?.includes('503') || 
+          error.message?.includes('overloaded') || 
+          error.message?.includes('UNAVAILABLE') ||
+          errorString.includes('503') ||
+          errorString.includes('overloaded') ||
+          errorString.includes('unavailable');
+
+        if (isOverloadError && attempt < maxRetries) {
+          // Exponential backoff: 1s, 2s, 4s
+          const delay = Math.pow(2, attempt - 1) * 1000;
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        } else if (!isOverloadError) {
+          // Non-retryable error
+          break;
+        }
       }
-    } catch (error: any) {
-      console.error('Error improving description:', error);
-      setAiError(error.message || 'Failed to improve description. Please try again.');
-    } finally {
-      setIsImprovingDescription(false);
     }
+
+    // All retries exhausted or non-retryable error
+    const isModelUnavailable = 
+      lastError?.includes?.('503') || 
+      lastError?.includes?.('overloaded') || 
+      lastError?.includes?.('UNAVAILABLE') ||
+      String(lastError).toLowerCase().includes('unavailable');
+
+    if (isModelUnavailable) {
+      setAiError('The AI service is currently unavailable after multiple attempts. You can continue with your own description - it looks great!');
+    } else {
+      setAiError(lastError || 'Failed to improve description. Please try again.');
+    }
+    
+    setIsImprovingDescription(false);
   };
 
   // Apply improved description
