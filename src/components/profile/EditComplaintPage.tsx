@@ -16,7 +16,7 @@ const EditComplaintPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
-  const { complaints, userComplaints, getComplaintById, updateComplaint } = useComplaints();
+  const { complaints, userComplaints, getComplaintById, refreshComplaints } = useComplaints();
   const { currentUser } = useAuth();
 
   // Load Google Maps API
@@ -306,7 +306,7 @@ const EditComplaintPage: React.FC = () => {
     if (existingComplaint && !isInitialized) {
       setFormData({
         title: existingComplaint.title,
-        sector: existingComplaint.category,
+        sector: existingComplaint.category.toUpperCase(),
         description: existingComplaint.description,
         location: existingComplaint.location,
         files: [],
@@ -318,24 +318,24 @@ const EditComplaintPage: React.FC = () => {
   }, [existingComplaint, isInitialized]);
 
   const sectors = [
-    'Transport',
-    'Utilities',
-    'Municipal',
-    'Infrastructure',
-    'Electricity',
-    'Water Supply',
-    'Sanitation',
-    'Education',
-    'Healthcare',
-    'Environment',
-    'Public Safety',
-    'Housing',
-    'Law & Order',
-    'Digital Services',
-    'Waste Management',
-    'Traffic',
-    'Animal Welfare',
-    'Employment',
+    'TRANSPORT',
+    'UTILITIES',
+    'MUNICIPAL',
+    'INFRASTRUCTURE',
+    'ELECTRICITY',
+    'WATER SUPPLY',
+    'SANITATION',
+    'EDUCATION',
+    'HEALTHCARE',
+    'ENVIRONMENT',
+    'PUBLIC SAFETY',
+    'HOUSING',
+    'LAW & ORDER',
+    'DIGITAL SERVICES',
+    'WASTE MANAGEMENT',
+    'TRAFFIC',
+    'ANIMAL WELFARE',
+    'EMPLOYMENT'
   ];
 
   if (loading) {
@@ -538,21 +538,11 @@ const EditComplaintPage: React.FC = () => {
 
         console.log('API response:', response);
 
-        // Update the local state via context to reflect changes immediately
-        if (response.success && response.data) {
-          console.log('Updating local context with:', response.data);
-          // Refresh the complaints context
-          await updateComplaint(id, {
-            title: formData.title,
-            category: formData.sector.toUpperCase(),
-            description: formData.description,
-            location: formData.location,
-            coordinates: {
-              latitude: mapLocation[0],
-              longitude: mapLocation[1]
-            } as any,
-            images: response.data.images || [...formData.existingImages],
-          });
+        // Refresh the complaints context to sync the updated data
+        if (response.success) {
+          console.log('Refreshing complaints context');
+          // Refresh complaints in background without blocking navigation
+          refreshComplaints();
         }
 
         alert('Complaint updated successfully!');
