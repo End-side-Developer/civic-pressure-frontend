@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ThumbsUp, Flame, CheckCircle, Search, ChevronDown } from 'lucide-react';
+import { ThumbsUp, Flame, CheckCircle, Search, ChevronDown, MapPin, Loader2 } from 'lucide-react';
 import { useComplaints } from '../../context/ComplaintsContext';
 import { useAuth } from '../../context/AuthContext';
 import backgroundImage from '../../assets/images/image1.jpg';
@@ -78,24 +78,110 @@ const formatVotes = (votes: number): string => {
   return votes.toString();
 };
 
+// Haversine formula to calculate distance between two coordinates in km
+const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+  const R = 6371; // Earth's radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+const formatDistance = (distance: number): string => {
+  if (distance < 1) {
+    return `${Math.round(distance * 1000)}m`;
+  }
+  return `${distance.toFixed(1)}km`;
+};
+
+const RADIUS_OPTIONS = [1, 2, 5, 10, 25];
+
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const { complaints, fetchComplaints, voteComplaint, loading } = useComplaints();
   const { currentUser } = useAuth();
-  const [activeFilter, setActiveFilter] = useState<'hot' | 'solved' | null>(null);
+  const [activeFilter, setActiveFilter] = useState<'hot' | 'solved' | 'nearme' | null>(null);
   const [selectedSector, setSelectedSector] = useState('All Sectors');
   const [sortBy, setSortBy] = useState('most-voted');
   const [showSectorDropdown, setShowSectorDropdown] = useState(false);
   const [visibleCount, setVisibleCount] = useState(16);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Near Me filter state
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [nearMeRadius, setNearMeRadius] = useState(2); // Default 2km
+  const [showRadiusDropdown, setShowRadiusDropdown] = useState(false);
 
   // Fetch complaints on mount
   useEffect(() => {
     fetchComplaints();
   }, [fetchComplaints]);
 
+  // Handle Near Me filter click
+  const handleNearMeClick = useCallback(() => {
+    if (activeFilter === 'nearme') {
+      setActiveFilter(null);
+      setUserLocation(null);
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser.');
+      return;
+    }
+
+    setLocationLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setUserLocation([latitude, longitude]);
+        setActiveFilter('nearme');
+        setLocationLoading(false);
+      },
+      (error) => {
+        setLocationLoading(false);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            alert('Location permission denied. Please enable location access in your browser settings.');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            alert('Location information is unavailable.');
+            break;
+          case error.TIMEOUT:
+            alert('Location request timed out. Please try again.');
+            break;
+          default:
+            alert('An error occurred while getting your location.');
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000,
+      }
+    );
+  }, [activeFilter]);
+
+  // Calculate distances for all complaints when user location is available
+  const complaintsWithDistance = useMemo(() => {
+    if (!userLocation) return complaints.map((c) => ({ ...c, distance: null }));
+    
+    return complaints.map((c) => {
+      const [lat, lng] = c.coordinates || [0, 0];
+      const distance = lat && lng ? calculateDistance(userLocation[0], userLocation[1], lat, lng) : null;
+      return { ...c, distance };
+    });
+  }, [complaints, userLocation]);
+
   const filteredComplaints = useMemo(() => {
-    let filtered = [...complaints];
+    let filtered = [...complaintsWithDistance];
 
     // Apply search filter
     if (searchQuery.trim()) {
@@ -118,15 +204,21 @@ const HomePage: React.FC = () => {
       filtered = filtered.filter((c) => c.votes >= HOT_TOPIC_THRESHOLD);
     } else if (activeFilter === 'solved') {
       filtered = filtered.filter((c) => c.status?.toUpperCase() === 'RESOLVED' || c.status?.toLowerCase() === 'solved');
+    } else if (activeFilter === 'nearme' && userLocation) {
+      filtered = filtered.filter((c) => c.distance !== null && c.distance <= nearMeRadius);
+      // Sort by distance when Near Me is active
+      filtered.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
     }
 
-    // Sort
-    if (sortBy === 'most-voted') {
-      filtered.sort((a, b) => b.votes - a.votes);
+    // Sort (only if not already sorted by distance)
+    if (activeFilter !== 'nearme') {
+      if (sortBy === 'most-voted') {
+        filtered.sort((a, b) => b.votes - a.votes);
+      }
     }
 
     return filtered;
-  }, [complaints, activeFilter, selectedSector, sortBy, searchQuery]);
+  }, [complaintsWithDistance, activeFilter, selectedSector, sortBy, searchQuery, userLocation, nearMeRadius]);
 
   const visibleComplaints = filteredComplaints.slice(0, visibleCount);
   const hasMore = filteredComplaints.length > visibleCount;
@@ -242,6 +334,72 @@ const HomePage: React.FC = () => {
               <span>Solved</span>
             </button>
 
+            {/* Near Me Filter */}
+            <div className="relative flex">
+              {/* Main Near Me Button */}
+              <button
+                onClick={handleNearMeClick}
+                disabled={locationLoading}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-l-full text-xs font-semibold
+                  bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300
+                  hover:bg-gray-50 dark:hover:bg-gray-700 transition shadow-sm
+                  border border-gray-200 dark:border-gray-700
+                  active:scale-95 md:px-3 md:py-2 md:text-sm
+                  ${activeFilter === 'nearme' ? 'ring-2 ring-blue-400' : ''}
+                  ${locationLoading ? 'opacity-70 cursor-wait' : ''}
+                `}
+              >
+                {locationLoading ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                )}
+                <span>Near Me • {nearMeRadius} km</span>
+              </button>
+
+              {/* Arrow Button (separate click) */}
+              <button
+                type="button"
+                onClick={() => setShowRadiusDropdown((prev) => !prev)}
+                className="px-2 py-2 rounded-r-full bg-white dark:bg-gray-800
+                  border border-l-0 border-gray-200 dark:border-gray-700
+                  hover:bg-gray-50 dark:hover:bg-gray-700 transition shadow-sm"
+              >
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform ${showRadiusDropdown ? 'rotate-180' : ''} dark:text-white`}
+                />
+              </button>
+
+              {/* Radius Dropdown */}
+              {showRadiusDropdown && (
+                <div className="absolute top-full right-0 mt-2 w-40 bg-white dark:bg-gray-800
+                  rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-30 py-2">
+                  <div className="px-4 py-2 text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase">
+                    Radius
+                  </div>
+
+                  {RADIUS_OPTIONS.map((radius) => (
+                    <button
+                      key={radius}
+                      onClick={() => {
+                        setNearMeRadius(radius);
+                        setShowRadiusDropdown(false);
+                      }}
+                      className={`w-full text-left px-4 py-2.5 text-sm transition
+                        hover:bg-blue-50 dark:hover:bg-blue-900/30
+                        ${
+                          nearMeRadius === radius
+                            ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium'
+                            : 'text-gray-700 dark:text-gray-300'
+                        }`}
+                    >
+                      {radius} km
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Sector Dropdown */}
             <div className="relative">
               <button
@@ -324,7 +482,7 @@ const HomePage: React.FC = () => {
               >
                 {/* Card Content */}
                 <div className="p-4 md:p-5 flex-1 flex flex-col">
-                  {/* Category Badge & Hot Tag */}
+                  {/* Category Badge & Hot Tag & Distance */}
                   <div className="mb-3 flex items-center gap-2 flex-wrap">
                     <span
                       className={`${getSectorColor(complaint.category).bg} ${getSectorColor(complaint.category).text} inline-block text-[10px] xs:text-xs px-2.5 py-1 rounded-md font-semibold uppercase tracking-wider`}
@@ -335,6 +493,12 @@ const HomePage: React.FC = () => {
                       <span className="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-orange-500 to-red-500 text-white text-[10px] xs:text-xs rounded-md font-semibold uppercase tracking-wider shadow-sm animate-pulse">
                         <Flame className="w-3 h-3" />
                         Hot
+                      </span>
+                    )}
+                    {activeFilter === 'nearme' && complaint.distance !== null && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] xs:text-xs rounded-md font-semibold">
+                        <MapPin className="w-3 h-3" />
+                        {formatDistance(complaint.distance)}
                       </span>
                     )}
                   </div>
