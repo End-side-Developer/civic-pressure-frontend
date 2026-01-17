@@ -324,13 +324,19 @@ const HomePage: React.FC = () => {
               >
                 {/* Card Content */}
                 <div className="p-4 md:p-5 flex-1 flex flex-col">
-                  {/* Category Badge */}
-                  <div className="mb-3">
+                  {/* Category Badge & Hot Tag */}
+                  <div className="mb-3 flex items-center gap-2 flex-wrap">
                     <span
                       className={`${getSectorColor(complaint.category).bg} ${getSectorColor(complaint.category).text} inline-block text-[10px] xs:text-xs px-2.5 py-1 rounded-md font-semibold uppercase tracking-wider`}
                     >
                       {complaint.category}
                     </span>
+                    {complaint.votes >= HOT_TOPIC_THRESHOLD && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-orange-500 to-red-500 text-white text-[10px] xs:text-xs rounded-md font-semibold uppercase tracking-wider shadow-sm animate-pulse">
+                        <Flame className="w-3 h-3" />
+                        Hot
+                      </span>
+                    )}
                   </div>
 
                   {/* Title */}
